@@ -1,5 +1,6 @@
 from enum import Enum
 from collections import deque
+import heapq
 
 
 def readInput(fileName):
@@ -19,7 +20,7 @@ class Direction(Enum):
 directions = [Direction.EAST, Direction.SOUTH, Direction.WEST, Direction.NORTH]
 
 
-def find(value, end, start, result):
+def find(value, end, result):
     queue = deque()
     visited = set()
     for d in range(len(directions)):
@@ -45,40 +46,31 @@ def find(value, end, start, result):
 
 def solve(input):
     value = {}
-    nodes = set()
+    nodes = []
     for r in range(len(input)):
         for c in range(len(input[r])):
             if input[r][c] == "S":
                 for d in range(len(directions)):
                     value[(r, c, d)] = 2 << 31
-                    nodes.add((r, c, d))
+                    heapq.heappush(nodes, (2 << 31, r, c, d))
                 start = (r, c, 0)
                 value[start] = 0
-                nodes.add(start)
+                heapq.heappush(nodes, (0, r, c, 0))
             elif input[r][c] == "E":
                 end = (r, c)
                 for d in range(len(directions)):
                     value[(r, c, d)] = 2 << 31
-                    nodes.add((r, c, d))
+                    heapq.heappush(nodes, (2 << 31, r, c, d))
             elif input[r][c] == ".":
                 for d in range(len(directions)):
                     value[(r, c, d)] = 2 << 31
-                    nodes.add((r, c, d))
-    print(len(nodes))
+                    heapq.heappush(nodes, (2 << 31, r, c, d))
     result = 2 << 31
     while nodes:
-        min_node = None
-        min_value = 2 << 31
-        for n in nodes:
-            if value[n] < min_value:
-                min_value = value[n]
-                min_node = n
+        min_value, mr, mc, md = heapq.heappop(nodes)
+        min_node = (mr, mc, md)
         if min_node[0] == end[0] and min_node[1] == end[1] and min_value < result:
             result = min_value
-        if len(nodes) % 10000 == 0:
-            print(len(nodes), min_node)
-        nodes.remove(min_node)
-        mr, mc, md = min_node
         min_node_left = (mr, mc, (md - 1) % len(directions))
         min_node_right = (mr, mc, (md + 1) % len(directions))
         min_node_straight = (
@@ -88,11 +80,38 @@ def solve(input):
         )
         if min_node_left in value and min_value + 1000 < value[min_node_left]:
             value[min_node_left] = min_value + 1000
+            heapq.heappush(
+                nodes,
+                (
+                    min_value + 1000,
+                    min_node_left[0],
+                    min_node_left[1],
+                    min_node_left[2],
+                ),
+            )
         if min_node_right in value and min_value + 1000 < value[min_node_right]:
             value[min_node_right] = min_value + 1000
+            heapq.heappush(
+                nodes,
+                (
+                    min_value + 1000,
+                    min_node_right[0],
+                    min_node_right[1],
+                    min_node_right[2],
+                ),
+            )
         if min_node_straight in value and min_value + 1 < value[min_node_straight]:
             value[min_node_straight] = min_value + 1
-    count = find(value, end, start, result)
+            heapq.heappush(
+                nodes,
+                (
+                    min_value + 1,
+                    min_node_straight[0],
+                    min_node_straight[1],
+                    min_node_straight[2],
+                ),
+            )
+    count = find(value, end, result)
     return result, count
 
 
